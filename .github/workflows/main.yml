@@ -1,45 +1,49 @@
-name: Docker CI Pipeline
+name: Build and Deploy Jekyll Site
 
 on:
   push:
     branches:
-      - main
-  pull_request:
-    branches:
-      - main
+      - main  # Change to your default branch
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Install Docker if not already available
     - name: Set up Docker
+      uses: docker/setup-buildx-action@v2
+
+    - name: Build Jekyll site using Docker
       run: |
-        sudo apt-get update
-        sudo apt-get install -y docker.io
+        docker run --rm \
+        -v ${{ github.workspace }}:/srv/jekyll \
+        -v ${{ github.workspace }}/vendor/bundle:/usr/local/bundle \
+        jekyll/jekyll:latest \
+        jekyll build
 
-    # Ensure Docker is running
-    - name: Start Docker service
-      run: sudo systemctl start docker
+    - name: Upload Jekyll site to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./_site
 
-    # Build the Docker image
-    - name: Build Docker image
-      run: docker build -t your-docker-image-name:latest .
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
 
-    # Run the Docker container for testing
-    - name: Run Docker container
-      run: docker run -d --name test-container -p 8080:8080 your-docker-image-name:latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-    # Verify the container is running
-    - name: Verify container status
-      run: docker ps -a
-
-    # Stop and remove the container after testing
-    - name: Stop and remove Docker container
+    - name: Deploy to web server
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        SERVER: ${{ secrets.SERVER }}
+        USER: ${{ secrets.USER }}
       run: |
-        docker stop test-container
-        docker rm test-container
+        echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add - > /dev/null
+        ssh-keyscan -H $SERVER >> ~/.ssh/known_hosts
+        rsync -avz --delete _site/ $USER@$SERVER:/var/www/html/
