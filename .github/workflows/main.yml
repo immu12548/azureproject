@@ -27,5 +27,5 @@ jobs:
       - name: Deploy to GitHub Pages
         uses: actions/deploy@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.TOKEN }}
           folder: dist
