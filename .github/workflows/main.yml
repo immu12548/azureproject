@@ -26,6 +26,4 @@ jobs:
         run: npm run build
       - name: Deploy to GitHub Pages
         uses: actions/deploy@v1
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          folder: dist
+        
