@@ -18,7 +18,11 @@ jobs:
         with:
           node-version: '16'
       
-    
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Lint HTML and JavaScript
+        run: npx eslint .
       
       - name: Run tests
         run: npm test
